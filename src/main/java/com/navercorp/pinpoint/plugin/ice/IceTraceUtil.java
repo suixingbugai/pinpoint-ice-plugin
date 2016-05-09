@@ -1,7 +1,7 @@
 package com.navercorp.pinpoint.plugin.ice;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,21 +15,24 @@ import com.navercorp.pinpoint.bootstrap.instrument.MethodFilters;
 import com.navercorp.pinpoint.bootstrap.logging.PLogger;
 import com.navercorp.pinpoint.bootstrap.logging.PLoggerFactory;
 
+import Ice.ObjectImpl;
+import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.lukehutch.fastclasspathscanner.matchprocessor.SubclassMatchProcessor;
+
 public class IceTraceUtil {
 
 	private static final PLogger logger = PLoggerFactory.getLogger(IceTraceUtil.class);;
 	
 	private static Map<String,List<InstrumentMethod>> cache = new HashMap<>();
-	
-	public static String[] argumentsOfMethod(Method method) {
-		String[] args = new String[method.getParameterTypes().length];
-		int i = 0;
-		for (Class<?> clazz : method.getParameterTypes()) {
-			args[i++] = clazz.getSimpleName();
-		}
-		return args;
-	}
 
+	public static List<String> getClientInstrumentClasses(){
+		return new FastClasspathScanner("","-Ice","-IceMX").scan().getNamesOfSubclassesOf("Ice.ObjectPrxHelperBase");
+	}
+	
+	public static List<String> getServerInstrumentClasses(){
+		return new FastClasspathScanner("","-Ice","-IceMX","-IceInternal").scan().getNamesOfSubclassesOf("Ice.ObjectImpl");
+	}
+	
 	public static InstrumentMethodMetaData getClientMethods(InstrumentClass target, String className) {
 		List<InstrumentMethod> methods = getClientInstrumentMethods(target,className);
 		Map<String,InstrumentMethod> args = new HashMap<>();
